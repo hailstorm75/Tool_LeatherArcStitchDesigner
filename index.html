@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leathercraft Arc Designer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Prevent text selection while panning the canvas */
+    .no-select { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+<body class="min-h-screen bg-neutral-100 p-4 md:p-8 font-sans text-neutral-800">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-sm p-6 flex items-center justify-between border border-neutral-200">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-neutral-900">Leathercraft Arc Designer</h1>
+        <p class="text-sm text-neutral-500 mt-1">Perfectly calculate pricking iron pitches and arc radiuses.</p>
+      </div>
+      <div class="hidden sm:flex h-12 w-12 bg-neutral-900 rounded-full items-center justify-center text-white">
+        <i data-lucide="settings"></i>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Controls Column -->
+      <div class="lg:col-span-4 space-y-6">
+        
+        <!-- Global Parameters -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-neutral-200">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-4 flex items-center gap-2">
+            <i data-lucide="settings" class="w-4 h-4"></i> Global Parameters
+          </h2>
+          
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700">Pricking Pitch (mm)</label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-pitch" value="Pitch" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <input type="number" id="input-pitch" min="0.1" step="0.01" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all">
+            </div>
+            
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700">Stitching Margin (mm)</label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-arcOffset" value="StitchMargin" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <input type="number" id="input-arcOffset" min="0" step="0.1" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all">
+            </div>
+
+            <div class="pt-4 border-t border-neutral-100">
+              <div class="flex justify-between items-center">
+                <div class="flex flex-col gap-0.5">
+                  <label class="text-sm font-medium text-neutral-700">Edge Margin (mm)</label>
+                  <div class="flex items-center gap-1">
+                    <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                    <input type="text" id="name-edgeOffset" value="EdgeMargin" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                  </div>
+                </div>
+                <input type="number" id="input-edgeOffset" min="0" step="0.1" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all">
+              </div>
+              
+              <div class="flex gap-4 mt-3">
+                <label class="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer">
+                  <input type="checkbox" id="check-startOffset" class="geom-check rounded text-neutral-900 focus:ring-neutral-900"> Apply Start
+                </label>
+                <label class="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer">
+                  <input type="checkbox" id="check-endOffset" class="geom-check rounded text-neutral-900 focus:ring-neutral-900"> Apply End
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Arc Geometry -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-neutral-200">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-4 flex items-center gap-2">
+            <i data-lucide="triangle" class="w-4 h-4"></i> Arc Geometry
+          </h2>
+
+          <div class="space-y-6">
+            <!-- Radius -->
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700 flex flex-col">
+                  Radius (R, mm)
+                  <span id="driven-r" class="hidden text-[10px] text-amber-600 font-bold uppercase">Driven by constraints</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-r" value="Radius" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="number" id="input-r" step="0.1" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all disabled:bg-neutral-100 disabled:text-neutral-500 disabled:border-neutral-200">
+                <button id="btn-lock-r" class="lock-btn p-1.5 rounded-md transition-colors w-8 h-8 flex items-center justify-center"></button>
+              </div>
+            </div>
+
+            <!-- Angle -->
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700 flex flex-col">
+                  Angle (θ, °)
+                  <span id="driven-a" class="hidden text-[10px] text-amber-600 font-bold uppercase">Driven by constraints</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-a" value="Angle" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="number" id="input-a" min="0.1" max="359.9" step="0.1" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all disabled:bg-neutral-100 disabled:text-neutral-500 disabled:border-neutral-200">
+                <button id="btn-lock-a" class="lock-btn p-1.5 rounded-md transition-colors w-8 h-8 flex items-center justify-center"></button>
+              </div>
+            </div>
+
+            <!-- Chord -->
+            <div class="flex justify-between items-center">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700 flex flex-col">
+                  Chord (C, mm)
+                  <span id="driven-c" class="hidden text-[10px] text-amber-600 font-bold uppercase">Driven by constraints</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-c" value="Chord" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="number" id="input-c" min="0.1" step="0.1" class="geom-input w-24 p-1.5 text-right text-sm border border-neutral-300 rounded-md focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 outline-none transition-all disabled:bg-neutral-100 disabled:text-neutral-500 disabled:border-neutral-200">
+                <button id="btn-lock-c" class="lock-btn p-1.5 rounded-md transition-colors w-8 h-8 flex items-center justify-center"></button>
+              </div>
+            </div>
+
+            <!-- Height -->
+            <div class="flex justify-between items-center pt-2 border-t border-neutral-100">
+              <div class="flex flex-col gap-0.5">
+                <label class="text-sm font-medium text-neutral-700 flex flex-col">
+                  Arc Height (Sagitta)
+                  <span class="text-[10px] text-amber-600 font-bold uppercase">Driven by constraints</span>
+                </label>
+                <div class="flex items-center gap-1">
+                  <span class="text-[10px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-h" value="Height" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0.5 outline-none w-20 transition-colors">
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="number" id="input-h" disabled class="w-24 p-1.5 text-right text-sm border border-neutral-200 rounded-md bg-neutral-50 text-neutral-500 outline-none">
+                <div class="p-1.5 w-[32px]"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Visualization Column -->
+      <div class="lg:col-span-8 flex flex-col space-y-6">
+        
+        <!-- Status Box -->
+        <div id="status-box" class="px-4 py-4 rounded-xl flex gap-3 items-start shadow-sm border transition-colors duration-300">
+          <div id="status-icon" class="shrink-0 mt-0.5"></div>
+          <div class="text-sm flex-1">
+            <p id="status-title" class="font-semibold text-base"></p>
+            <p id="status-desc" class="mt-1"></p>
+            <p id="status-hint" class="mt-3 font-medium text-red-600 hidden">The arc is fully constrained by geometry. Unlock a dimension to optimize.</p>
+            <button id="btn-optimize" class="mt-4 flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors shadow-sm hidden">
+              <i data-lucide="wand-2" class="w-4 h-4"></i> Optimize Geometry
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+           <div class="bg-white rounded-xl p-4 shadow-sm border border-neutral-200">
+              <div class="flex justify-between items-start mb-1">
+                <div class="text-xs text-neutral-500 font-medium">Total Holes</div>
+                <div class="flex items-center gap-1">
+                  <span class="text-[9px] text-neutral-400 font-mono">var:</span>
+                  <input type="text" id="name-n" value="HoleCount" class="name-input text-[10px] font-mono text-indigo-600 bg-indigo-50/50 hover:bg-indigo-100 focus:bg-white border border-transparent focus:border-indigo-300 rounded px-1 py-0 outline-none w-14 transition-colors text-right">
+                </div>
+              </div>
+              <div id="stat-n" class="text-2xl font-bold text-neutral-900"></div>
+           </div>
+           <div class="bg-white rounded-xl p-4 shadow-sm border border-neutral-200">
+              <div class="text-xs text-neutral-500 font-medium mb-1">Outer Arc Length</div>
+              <div class="text-2xl font-bold text-neutral-900"><span id="stat-outer"></span> <span class="text-sm font-normal text-neutral-400">mm</span></div>
+           </div>
+           <div class="bg-white rounded-xl p-4 shadow-sm border border-neutral-200">
+              <div class="text-xs text-neutral-500 font-medium mb-1">Stitch Line Length</div>
+              <div class="text-2xl font-bold text-neutral-900"><span id="stat-stitch"></span> <span class="text-sm font-normal text-neutral-400">mm</span></div>
+           </div>
+           <div class="bg-white rounded-xl p-4 shadow-sm border border-neutral-200">
+              <div class="text-xs text-neutral-500 font-medium mb-1">Actual Spacing</div>
+              <div class="text-2xl font-bold text-neutral-900"><span id="stat-spacing"></span> <span class="text-sm font-normal text-neutral-400">mm</span></div>
+           </div>
+        </div>
+
+        <!-- SVG Canvas -->
+        <div id="svg-container" class="w-full bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 flex items-center justify-center relative overflow-hidden min-h-[400px] cursor-grab active:cursor-grabbing no-select">
+          
+          <div class="absolute top-4 left-4 text-xs font-mono text-neutral-400 flex flex-col gap-1 z-10 pointer-events-none">
+            <span id="overlay-r"></span>
+            <span id="overlay-a"></span>
+            <span id="overlay-c"></span>
+          </div>
+
+          <div class="absolute top-4 right-4 flex flex-col bg-white rounded-lg shadow-sm border border-neutral-200 z-10">
+            <button id="btn-zoom-in" class="p-2 hover:bg-neutral-100 rounded-t-lg border-b border-neutral-100 text-neutral-600 font-bold text-lg leading-none" title="Zoom In">+</button>
+            <button id="btn-zoom-fit" class="p-2 hover:bg-neutral-100 border-b border-neutral-100 text-neutral-600 text-xs font-medium" title="Reset View">FIT</button>
+            <button id="btn-zoom-out" class="p-2 hover:bg-neutral-100 rounded-b-lg text-neutral-600 font-bold text-lg leading-none" title="Zoom Out">−</button>
+          </div>
+
+          <svg id="svg-main" class="w-full h-full pointer-events-none select-none" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+
+        <!-- FreeCAD Integration -->
+        <div class="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+          <div class="bg-neutral-900 px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <h2 class="text-sm font-bold tracking-wider text-white flex items-center gap-2">
+              <i data-lucide="code-2" class="w-4 h-4"></i> FreeCAD Integration
+            </h2>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-neutral-400">Prefix:</span>
+              <input type="text" id="input-prefix" value="<<Spreadsheet>>." class="bg-neutral-800 text-neutral-200 border border-neutral-700 rounded px-2 py-1 outline-none focus:border-neutral-500 w-32 font-mono">
+            </div>
+          </div>
+          
+          <div class="bg-neutral-50/50 px-6 py-3 border-b border-neutral-100 flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-neutral-500">Target Stitch Rules</span>
+          </div>
+          <div id="freecad-target-rules" class="p-0"></div>
+
+          <div class="bg-neutral-50/50 px-6 py-3 border-y border-neutral-100 flex items-center justify-between mt-4">
+            <span class="text-xs font-bold uppercase tracking-wider text-neutral-500 flex items-center gap-2">
+              Calculated Constraints <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full normal-case font-medium">Adapts to your locks</span>
+            </span>
+          </div>
+          <div id="freecad-dynamic-rules" class="p-0"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Initial State
+    const state = {
+      pitch: 3.0,
+      arcOffset: 1.5,
+      edgeOffset: 1.5,
+      startOffset: true,
+      endOffset: true,
+      r: 27.8,
+      a: 103.78,
+      c: 43.75,
+      h: 10.74, 
+      locks: { r: false, a: true, c: true },
+      n: 0,
+      slack: 0
+    };
+
+    let fcPrefix = '<<Spreadsheet>>.';
+    const names = {
+      pitch: 'Pitch', arcOffset: 'StitchMargin', edgeOffset: 'EdgeMargin',
+      r: 'Radius', a: 'Angle', c: 'Chord', h: 'Height', n: 'HoleCount'
+    };
+
+    // View State
+    let zoom = 1;
+    let pan = { x: 0, y: 0 };
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+
+    // Math Utils
+    const round2 = (num) => Math.round(num * 100) / 100;
+    const round3 = (num) => Math.round(num * 1000) / 1000;
+
+    // Core Geometry Engine
+    function updateGeometry(field, val) {
+      let { pitch, arcOffset, edgeOffset, startOffset, endOffset, r, a, c, locks } = state;
+
+      if (field === 'r') r = Math.max(arcOffset + 0.1, val);
+      if (field === 'a') a = Math.max(0.1, Math.min(359.9, val));
+      if (field === 'c') c = Math.max(0.1, val);
+      if (field === 'pitch') pitch = Math.max(0.1, val);
+      if (field === 'arcOffset') arcOffset = Math.max(0, val);
+      if (field === 'edgeOffset') edgeOffset = Math.max(0, val);
+      if (field === 'startOffset') startOffset = val;
+      if (field === 'endOffset') endOffset = val;
+
+      let aRad = (a * Math.PI) / 180;
+
+      if (field === 'r') {
+        if (locks.a) c = 2 * r * Math.sin(aRad / 2);
+        else if (locks.c) {
+          c = Math.min(c, 2 * r);
+          aRad = 2 * Math.asin(c / (2 * r));
+          a = (aRad * 180) / Math.PI;
+        } else c = 2 * r * Math.sin(aRad / 2);
+      } else if (field === 'a') {
+        if (locks.r) c = 2 * r * Math.sin(aRad / 2);
+        else if (locks.c) r = c / (2 * Math.sin(aRad / 2));
+        else c = 2 * r * Math.sin(aRad / 2);
+      } else if (field === 'c') {
+        if (locks.r) {
+          c = Math.min(c, 2 * r);
+          aRad = 2 * Math.asin(c / (2 * r));
+          a = (aRad * 180) / Math.PI;
+        } else if (locks.a) {
+          r = c / (2 * Math.sin(aRad / 2));
+        } else {
+          r = c / (2 * Math.sin(aRad / 2));
+        }
+      } else {
+        if (locks.r && locks.a) c = 2 * r * Math.sin(aRad / 2);
+        else if (locks.r && locks.c) {
+          aRad = 2 * Math.asin(c / (2 * r));
+          a = (aRad * 180) / Math.PI;
+        } else if (locks.a && locks.c) r = c / (2 * Math.sin(aRad / 2));
+      }
+
+      c = 2 * r * Math.sin((a * Math.PI / 180) / 2);
+      let h = r * (1 - Math.cos((a * Math.PI / 180) / 2));
+
+      let oStart = startOffset ? edgeOffset : 0;
+      let oEnd = endOffset ? edgeOffset : 0;
+      let L_s_target = (r - arcOffset) * (a * Math.PI / 180);
+      let availableStitchLength = L_s_target - oStart - oEnd;
+      let N = Math.max(2, Math.round(availableStitchLength / pitch) + 1);
+      let L_s_true = (N - 1) * pitch + oStart + oEnd;
+
+      let slack = L_s_target - L_s_true;
+
+      // Update global state
+      Object.assign(state, { pitch, arcOffset, edgeOffset, startOffset, endOffset, r, a, c, h, n: N, slack });
+      renderAll();
+    }
+
+    function handleOptimize() {
+      let { pitch, arcOffset, edgeOffset, startOffset, endOffset, r, a, c, locks } = state;
+      let oStart = startOffset ? edgeOffset : 0;
+      let oEnd = endOffset ? edgeOffset : 0;
+      let aRad = (a * Math.PI) / 180;
+
+      let L_s_target = (r - arcOffset) * aRad;
+      let availableStitchLength = L_s_target - oStart - oEnd;
+      let N = Math.max(2, Math.round(availableStitchLength / pitch) + 1);
+      let L_s_true = (N - 1) * pitch + oStart + oEnd;
+
+      let activeLocksCount = (locks.r ? 1 : 0) + (locks.a ? 1 : 0) + (locks.c ? 1 : 0);
+      if (activeLocksCount >= 2) return; 
+
+      let snapVar = 'a';
+      if (locks.r) snapVar = 'a';
+      else if (locks.a) snapVar = 'r';
+      else if (locks.c) snapVar = 'a_bisect';
+
+      if (snapVar === 'a') {
+        aRad = L_s_true / (r - arcOffset);
+        a = (aRad * 180) / Math.PI;
+        c = 2 * r * Math.sin(aRad / 2);
+      } else if (snapVar === 'r') {
+        r = L_s_true / aRad + arcOffset;
+        c = 2 * r * Math.sin(aRad / 2);
+      } else if (snapVar === 'a_bisect') {
+        let low = 0.0001;
+        let high = 2 * Math.PI;
+        let mid = 0;
+        for (let i = 0; i < 40; i++) {
+          mid = (low + high) / 2;
+          let R_test = c / (2 * Math.sin(mid / 2));
+          let L_test = mid * (R_test - arcOffset);
+          if (L_test > L_s_true) high = mid;
+          else low = mid;
+        }
+        aRad = mid;
+        a = (aRad * 180) / Math.PI;
+        r = c / (2 * Math.sin(aRad / 2));
+      }
+
+      L_s_target = (r - arcOffset) * aRad;
+      availableStitchLength = L_s_target - oStart - oEnd;
+      N = Math.max(2, Math.round(availableStitchLength / pitch) + 1);
+      let slack = L_s_target - ((N - 1) * pitch + oStart + oEnd);
+      let h = r * (1 - Math.cos(aRad / 2));
+
+      Object.assign(state, { r, a, c, h, n: N, slack });
+      renderAll();
+    }
+
+    function toggleLock(field) {
+      const activeLocksCount = (state.locks.r ? 1 : 0) + (state.locks.a ? 1 : 0) + (state.locks.c ? 1 : 0);
+      if (!state.locks[field] && activeLocksCount >= 2) return;
+      state.locks[field] = !state.locks[field];
+      renderAll();
+    }
+
+    // SVG Helpers
+    function describeArc(x, y, radius, sAngle, eAngle) {
+      const start = { x: x + radius * Math.cos(sAngle), y: y + radius * Math.sin(sAngle) };
+      const end = { x: x + radius * Math.cos(eAngle), y: y + radius * Math.sin(eAngle) };
+      const largeArcFlag = eAngle - sAngle <= Math.PI ? "0" : "1";
+      return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
+    }
+
+    // Copy Utility
+    function copyText(text, btnElement) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        const originalHtml = btnElement.innerHTML;
+        btnElement.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500"></i> Copied!`;
+        lucide.createIcons();
+        setTimeout(() => {
+          btnElement.innerHTML = originalHtml;
+          lucide.createIcons();
+        }, 2000);
+      } catch (err) {
+        console.error('Copy failed', err);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Rendering functions
+    function renderSidebar() {
+      document.getElementById('input-pitch').value = round3(state.pitch);
+      document.getElementById('input-arcOffset').value = round3(state.arcOffset);
+      document.getElementById('input-edgeOffset').value = round3(state.edgeOffset);
+      document.getElementById('check-startOffset').checked = state.startOffset;
+      document.getElementById('check-endOffset').checked = state.endOffset;
+
+      const activeLocksCount = (state.locks.r ? 1 : 0) + (state.locks.a ? 1 : 0) + (state.locks.c ? 1 : 0);
+      const isRDriven = !state.locks.r && activeLocksCount >= 2;
+      const isADriven = !state.locks.a && activeLocksCount >= 2;
+      const isCDriven = !state.locks.c && activeLocksCount >= 2;
+
+      const updateInput = (id, val, isLocked, isDriven) => {
+        const el = document.getElementById(id);
+        el.value = round3(val);
+        el.disabled = isLocked || isDriven;
+      };
+
+      const updateLockBtn = (id, isLocked, isDriven) => {
+        const btn = document.getElementById(id);
+        btn.disabled = isDriven;
+        btn.className = `lock-btn p-1.5 rounded-md transition-colors w-8 h-8 flex items-center justify-center ${isLocked ? 'bg-amber-100 text-amber-700' : isDriven ? 'bg-neutral-100 text-neutral-300' : 'bg-neutral-100 text-neutral-400 hover:bg-neutral-200'}`;
+        btn.innerHTML = `<i data-lucide="${isLocked ? 'lock' : isDriven ? 'lock-keyhole' : 'unlock'}" class="w-3.5 h-3.5"></i>`;
+      };
+
+      document.getElementById('input-r').setAttribute('min', Math.ceil(state.arcOffset + 0.1));
+      updateInput('input-r', state.r, state.locks.r, isRDriven);
+      updateLockBtn('btn-lock-r', state.locks.r, isRDriven);
+      document.getElementById('driven-r').classList.toggle('hidden', !isRDriven);
+
+      updateInput('input-a', state.a, state.locks.a, isADriven);
+      updateLockBtn('btn-lock-a', state.locks.a, isADriven);
+      document.getElementById('driven-a').classList.toggle('hidden', !isADriven);
+
+      updateInput('input-c', state.c, state.locks.c, isCDriven);
+      updateLockBtn('btn-lock-c', state.locks.c, isCDriven);
+      document.getElementById('driven-c').classList.toggle('hidden', !isCDriven);
+
+      document.getElementById('input-h').value = round3(state.h);
+    }
+
+    function renderStatusAndStats() {
+      const activeLocksCount = (state.locks.r ? 1 : 0) + (state.locks.a ? 1 : 0) + (state.locks.c ? 1 : 0);
+      const hasSlack = Math.abs(state.slack) > 0.01;
+      
+      const statusBox = document.getElementById('status-box');
+      const statusIcon = document.getElementById('status-icon');
+      const statusTitle = document.getElementById('status-title');
+      const statusDesc = document.getElementById('status-desc');
+      const statusHint = document.getElementById('status-hint');
+      const btnOptimize = document.getElementById('btn-optimize');
+
+      if (hasSlack) {
+        statusBox.className = "px-4 py-4 rounded-xl flex gap-3 items-start shadow-sm border bg-amber-50 border-amber-200 text-amber-900";
+        statusIcon.innerHTML = `<i data-lucide="alert-circle" class="text-amber-600 w-5 h-5"></i>`;
+        statusTitle.textContent = "Manual Adjustment Active";
+        statusDesc.innerHTML = `The current geometry leaves <strong>${Math.abs(state.slack).toFixed(2)} mm</strong> of ${state.slack > 0 ? 'slack' : 'overlap'} along the stitch line.`;
+        
+        if (activeLocksCount >= 2) {
+          statusHint.classList.remove('hidden');
+          btnOptimize.classList.add('hidden');
+        } else {
+          statusHint.classList.add('hidden');
+          btnOptimize.classList.remove('hidden');
+        }
+      } else {
+        statusBox.className = "px-4 py-4 rounded-xl flex gap-3 items-start shadow-sm border bg-emerald-50 border-emerald-200 text-emerald-900";
+        statusIcon.innerHTML = `<i data-lucide="check-circle-2" class="text-emerald-600 w-5 h-5"></i>`;
+        statusTitle.textContent = "Perfect Fit!";
+        statusDesc.innerHTML = `<span class="text-emerald-700/80">Holes fit flawlessly along the stitching line with your current settings.</span>`;
+        statusHint.classList.add('hidden');
+        btnOptimize.classList.add('hidden');
+      }
+
+      const aRad = (state.a * Math.PI) / 180;
+      const rs = state.r - state.arcOffset;
+
+      document.getElementById('stat-n').textContent = state.n;
+      document.getElementById('stat-outer').textContent = (state.r * aRad).toFixed(1);
+      document.getElementById('stat-stitch').textContent = (rs * aRad).toFixed(1);
+      document.getElementById('stat-spacing').textContent = ((state.n - 1) * state.pitch).toFixed(1);
+    }
+
+    function renderCanvas() {
+      const aRad = (state.a * Math.PI) / 180;
+      const startAngle = -Math.PI / 2 - aRad / 2;
+      const endAngle = -Math.PI / 2 + aRad / 2;
+      const rs = state.r - state.arcOffset;
+      const oStart = state.startOffset ? state.edgeOffset : 0;
+
+      const viewBoxPadding = 20;
+      const minX = -state.r - viewBoxPadding;
+      const maxX = state.r + viewBoxPadding;
+      const minY = -state.r - viewBoxPadding;
+      let maxY = -state.r * Math.cos(aRad / 2);
+      if (state.a > 180) maxY = Math.max(maxY, state.r);
+      maxY += viewBoxPadding + 10;
+
+      const baseWidth = maxX - minX;
+      const baseHeight = maxY - minY;
+      const cx = (minX + maxX) / 2;
+      const cy = (minY + maxY) / 2;
+
+      const viewWidth = baseWidth / zoom;
+      const viewHeight = baseHeight / zoom;
+      const viewMinX = cx - viewWidth / 2 + pan.x;
+      const viewMinY = cy - viewHeight / 2 + pan.y;
+
+      document.getElementById('svg-main').setAttribute('viewBox', `${viewMinX} ${viewMinY} ${viewWidth} ${viewHeight}`);
+
+      document.getElementById('overlay-r').textContent = `R: ${state.r.toFixed(2)}`;
+      document.getElementById('overlay-a').textContent = `θ: ${state.a.toFixed(2)}°`;
+      document.getElementById('overlay-c').textContent = `C: ${state.c.toFixed(2)}`;
+
+      let markersSvg = '';
+      for (let i = 0; i < state.n; i++) {
+        const distanceAlongStitch = oStart + i * state.pitch;
+        const angleOffset = distanceAlongStitch / rs;
+        const markerAngle = startAngle + angleOffset;
+        const mx = rs * Math.cos(markerAngle);
+        const my = rs * Math.sin(markerAngle);
+        markersSvg += `<circle cx="${mx}" cy="${my}" r="${Math.max(0.8, state.r * 0.015)}" fill="#ef4444" stroke="#ffffff" stroke-width="${Math.max(0.2, state.r * 0.005)}"></circle>`;
+      }
+
+      document.getElementById('svg-main').innerHTML = `
+        <circle cx="0" cy="0" r="${state.r * 0.02}" fill="#e5e5e5"></circle>
+        <path d="M 0 ${-state.r*0.05} L 0 ${state.r*0.05} M ${-state.r*0.05} 0 L ${state.r*0.05} 0" stroke="#d4d4d4" stroke-width="${state.r*0.005}"></path>
+        <line x1="0" y1="0" x2="${state.r * Math.cos(startAngle)}" y2="${state.r * Math.sin(startAngle)}" stroke="#f0f0f0" stroke-width="${state.r*0.005}" stroke-dasharray="4 4"></line>
+        <line x1="0" y1="0" x2="${state.r * Math.cos(endAngle)}" y2="${state.r * Math.sin(endAngle)}" stroke="#f0f0f0" stroke-width="${state.r*0.005}" stroke-dasharray="4 4"></line>
+        <line x1="${state.r * Math.cos(startAngle)}" y1="${state.r * Math.sin(startAngle)}" x2="${state.r * Math.cos(endAngle)}" y2="${state.r * Math.sin(endAngle)}" stroke="#e5e5e5" stroke-width="${Math.max(0.5, state.r*0.01)}" stroke-dasharray="3 3"></line>
+        <line x1="${state.r * Math.cos(startAngle + aRad/2)}" y1="${state.r * Math.sin(startAngle + aRad/2)}" x2="${(state.r - state.h) * Math.cos(startAngle + aRad/2)}" y2="${(state.r - state.h) * Math.sin(startAngle + aRad/2)}" stroke="#fbbf24" stroke-width="${Math.max(0.5, state.r*0.01)}" stroke-dasharray="2 2"></line>
+        <path d="${describeArc(0, 0, state.r, startAngle, endAngle)}" fill="none" stroke="#171717" stroke-width="${Math.max(1, state.r*0.015)}" stroke-linecap="round"></path>
+        <path d="${describeArc(0, 0, rs, startAngle, endAngle)}" fill="none" stroke="#3b82f6" stroke-width="${Math.max(0.5, state.r*0.008)}" stroke-dasharray="4 4"></path>
+        ${markersSvg}
+      `;
+    }
+
+    function generateFormulaRow(title, description, formulas) {
+      if (!formulas || formulas.length === 0) return '';
+      let formulaHtml = formulas.map(f => `
+        <div class="flex flex-col md:flex-row gap-2 md:items-center">
+          ${f.label ? `<span class="text-[10px] uppercase font-bold text-neutral-400 w-24 shrink-0 text-right md:text-left">${f.label}</span>` : ''}
+          <div class="flex-1 font-mono text-xs bg-neutral-100 text-neutral-700 p-2 rounded border border-neutral-200 break-all select-all">${f.value}</div>
+          <button data-copy="${f.value}" class="copy-btn shrink-0 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-neutral-200 rounded-lg text-xs font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 shadow-sm transition-all w-24">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+          </button>
+        </div>
+      `).join('');
+
+      return `
+        <div class="p-4 md:p-6 hover:bg-neutral-50 transition-colors flex flex-col gap-3 group border-b border-neutral-100 last:border-0">
+          <div>
+            <h3 class="text-sm font-semibold text-neutral-900">${title}</h3>
+            <p class="text-xs text-neutral-500 mt-0.5 leading-relaxed">${description}</p>
+          </div>
+          <div class="flex flex-col gap-2 mt-1">${formulaHtml}</div>
+        </div>
+      `;
+    }
+
+    function renderFreeCAD() {
+      const activeLocksCount = (state.locks.r ? 1 : 0) + (state.locks.a ? 1 : 0) + (state.locks.c ? 1 : 0);
+
+      let parts = [];
+      if (state.startOffset) parts.push(`${fcPrefix}${names.edgeOffset}`);
+      if (state.endOffset) parts.push(`${fcPrefix}${names.edgeOffset}`);
+      let offsetSum = '0';
+      if (parts.length === 2) offsetSum = `(2 * ${fcPrefix}${names.edgeOffset})`;
+      else if (parts.length === 1) offsetSum = parts[0];
+
+      const strStitchLengthHoles = `(${fcPrefix}${names.n} - 1) * ${fcPrefix}${names.pitch} + ${offsetSum}`;
+      const strStitchLengthGeom = `(${fcPrefix}${names.r} - ${fcPrefix}${names.arcOffset}) * (${fcPrefix}${names.a} * pi / 180)`;
+      const strHoleCount = `round((((${fcPrefix}${names.r} - ${fcPrefix}${names.arcOffset}) * (${fcPrefix}${names.a} * pi / 180) - ${offsetSum}) / ${fcPrefix}${names.pitch})) + 1`;
+      const strAngleStitch = `(((${fcPrefix}${names.n} - 1) * ${fcPrefix}${names.pitch} + ${offsetSum}) / (${fcPrefix}${names.r} - ${fcPrefix}${names.arcOffset})) * 180 / pi`;
+      const strRadiusStitch = `(((${fcPrefix}${names.n} - 1) * ${fcPrefix}${names.pitch} + ${offsetSum}) / (${fcPrefix}${names.a} * pi / 180)) + ${fcPrefix}${names.arcOffset}`;
+      const strChord = `2 * ${fcPrefix}${names.r} * sin(${fcPrefix}${names.a} / 2)`;
+      const strHeightApprox = `sqrt(0.375 * ${fcPrefix}${names.c} * (((${fcPrefix}${names.n} - 1) * ${fcPrefix}${names.pitch} + ${offsetSum}) - ${fcPrefix}${names.c}))`;
+      const strAngleGeom = `4 * atan(2 * ${fcPrefix}${names.h} / ${fcPrefix}${names.c})`; 
+      const strRadiusGeom = `(${fcPrefix}${names.c}^2 / (8 * ${fcPrefix}${names.h})) + (${fcPrefix}${names.h} / 2)`;
+
+      // Target Rules
+      document.getElementById('freecad-target-rules').innerHTML = 
+        generateFormulaRow("Target Stitch Line Length (L)", "Calculates the target physical length of the curve where your pricking irons will strike based on the Hole Count.", [{ value: strStitchLengthHoles }]) +
+        generateFormulaRow("Hole Count (n)", "Calculates the required number of pricking holes based on the arc's geometry and your pitch/margins.", [{ value: strHoleCount }]);
+
+      // Dynamic Rules
+      let dynamicHtml = '';
+      if (activeLocksCount === 0) {
+        dynamicHtml = `
+          <div class="p-4 md:p-6 text-sm text-neutral-500 italic">
+            Lock Radius, Angle, or Chord in the geometry panel to calculate specific constraints needed for your sketch.
+          </div>
+        `;
+      } else if (activeLocksCount === 1) {
+        if (state.locks.a) {
+          dynamicHtml += generateFormulaRow('Radius Constraint', 'Calculates the perfect Radius to fit your pitch and margins (Target Length / Angle + Offset).', [{ value: strRadiusStitch }]);
+          dynamicHtml += generateFormulaRow('Chord Constraint', 'Calculates the resulting geometric Chord distance.', [{ value: strChord }]);
+        } else if (state.locks.r) {
+          dynamicHtml += generateFormulaRow('Angle Constraint', 'Calculates the perfect Angle to fit your pitch and margins (Target Length / Target Radius).', [{ value: strAngleStitch }]);
+          dynamicHtml += generateFormulaRow('Chord Constraint', 'Calculates the resulting geometric Chord distance.', [{ value: strChord }]);
+        } else if (state.locks.c) {
+          dynamicHtml += generateFormulaRow('Arc Height (Sagitta) Approximation', 'Mathematically bridges the gap using the target stitch length (L) since finding exact height from a Chord and Length is transcendental.', [{ value: strHeightApprox }]);
+          dynamicHtml += generateFormulaRow('Radius Constraint', 'Calculates the Radius via the approximated Arc Height without referencing Angle.', [{ value: strRadiusGeom }]);
+          dynamicHtml += generateFormulaRow('Angle Constraint', 'Calculates the Angle via the approximated Arc Height without referencing Radius.', [{ value: strAngleGeom }]);
+        }
+      } else if (activeLocksCount >= 2) {
+        if (!state.locks.c) dynamicHtml += generateFormulaRow('Driven Chord', 'The exact geometric chord based on your locked Radius and Angle.', [{ value: strChord }]);
+        else if (!state.locks.a) dynamicHtml += generateFormulaRow('Driven Angle', 'The exact geometric angle based on your locked Radius and Chord.', [{ value: `2 * asin(${fcPrefix}${names.c} / (2 * ${fcPrefix}${names.r}))` }]);
+        else if (!state.locks.r) dynamicHtml += generateFormulaRow('Driven Radius', 'The exact geometric radius based on your locked Angle and Chord.', [{ value: `${fcPrefix}${names.c} / (2 * sin(${fcPrefix}${names.a} / 2))` }]);
+
+        dynamicHtml += generateFormulaRow('Actual Arc Length', 'The physical curve length resulting from your fully constrained geometry.', [{ value: strStitchLengthGeom }]);
+        dynamicHtml += generateFormulaRow('Slack / Overlap', 'The difference between the actual geometry length and your perfect target hole length.', [{ value: `${strStitchLengthGeom} - (${strStitchLengthHoles})` }]);
+      }
+
+      document.getElementById('freecad-dynamic-rules').innerHTML = dynamicHtml;
+    }
+
+    function renderAll() {
+      renderSidebar();
+      renderStatusAndStats();
+      renderCanvas();
+      renderFreeCAD();
+      lucide.createIcons(); // Refresh icons after rendering innerHTML
+    }
+
+    // Event Listeners Setup
+    function setupListeners() {
+      // Geometry Inputs
+      document.querySelectorAll('.geom-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          let field = e.target.id.replace('input-', '');
+          updateGeometry(field, parseFloat(e.target.value) || 0);
+        });
+      });
+      document.querySelectorAll('.geom-check').forEach(input => {
+        input.addEventListener('change', (e) => {
+          let field = e.target.id.replace('check-', '');
+          updateGeometry(field, e.target.checked);
+        });
+      });
+
+      // Locks
+      document.getElementById('btn-lock-r').addEventListener('click', () => toggleLock('r'));
+      document.getElementById('btn-lock-a').addEventListener('click', () => toggleLock('a'));
+      document.getElementById('btn-lock-c').addEventListener('click', () => toggleLock('c'));
+
+      // Optimize
+      document.getElementById('btn-optimize').addEventListener('click', handleOptimize);
+
+      // Names
+      document.querySelectorAll('.name-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          let key = e.target.id.replace('name-', '');
+          names[key] = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+          e.target.value = names[key];
+          renderFreeCAD();
+          lucide.createIcons();
+        });
+      });
+
+      // Prefix
+      document.getElementById('input-prefix').addEventListener('input', (e) => {
+        fcPrefix = e.target.value.replace(/[^a-zA-Z0-9_\.\<\>]/g, '');
+        e.target.value = fcPrefix;
+        renderFreeCAD();
+        lucide.createIcons();
+      });
+
+      // SVG Zoom/Pan
+      const svgContainer = document.getElementById('svg-container');
+      svgContainer.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomChange = e.deltaY * -0.002;
+        zoom = Math.min(Math.max(0.2, zoom + zoomChange * zoom), 20);
+        renderCanvas();
+      }, { passive: false });
+
+      svgContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStart = { x: e.clientX, y: e.clientY };
+      });
+
+      svgContainer.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStart.x;
+        const dy = e.clientY - dragStart.y;
+        
+        const aRad = (state.a * Math.PI) / 180;
+        const viewBoxPadding = 20;
+        const minX = -state.r - viewBoxPadding;
+        const maxX = state.r + viewBoxPadding;
+        const baseWidth = maxX - minX;
+        const viewWidth = baseWidth / zoom;
+        
+        const scaleFactor = viewWidth / svgContainer.clientWidth;
+        pan.x -= dx * scaleFactor;
+        pan.y -= dy * scaleFactor;
+        dragStart = { x: e.clientX, y: e.clientY };
+        renderCanvas();
+      });
+
+      svgContainer.addEventListener('mouseup', () => isDragging = false);
+      svgContainer.addEventListener('mouseleave', () => isDragging = false);
+
+      document.getElementById('btn-zoom-in').addEventListener('click', () => { zoom = Math.min(zoom * 1.2, 20); renderCanvas(); });
+      document.getElementById('btn-zoom-out').addEventListener('click', () => { zoom = Math.max(zoom / 1.2, 0.2); renderCanvas(); });
+      document.getElementById('btn-zoom-fit').addEventListener('click', () => { zoom = 1; pan = {x:0, y:0}; renderCanvas(); });
+
+      // Copy Buttons Delegation
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.copy-btn');
+        if (btn) copyText(btn.dataset.copy, btn);
+      });
+    }
+
+    // Initialize
+    setupListeners();
+    updateGeometry('init', null); // Initial trigger will call renderAll
+
+  </script>
+</body>
+</html>
